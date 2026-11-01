@@ -394,3 +394,35 @@ Execute this build systematically in the following order:
 3. Implement all API route handlers under `src/app/api/...`.
 4. Implement shared components (`Navbar.tsx`, `StopAutocomplete.tsx`, `TripCard.tsx`, `RouteCard.tsx`).
 5. Implement the pages (`/`, `/buses`, `/login`, `/dashboard`) and update `README.md` with setup instructions, architecture overview, and API documentation.
+
+
+---
+
+## 10. RouteX Admin Panel Specification (Backend APIs + Frontend UI)
+
+### 10.1 Security & Authorization Contract (`requireAdmin`)
+- Helper function `requireAdmin()` in `src/lib/auth.ts` verifies that the active session has `user_role === 'admin'`.
+- All endpoints under `/api/admin/...` verify `requireAdmin()` and return `403 Forbidden` if unauthorized.
+- `Navbar.tsx` surfaces the "Admin Panel" link (`/admin`) exclusively for admin users.
+
+### 10.2 Admin TypeScript Domain Interfaces (`src/lib/types.ts`)
+- `AdminStats`: Aggregate system counters (stops, routes, buses, schedules, trips, users).
+- `AdminStop`: Stop entity with coordinates and active flag.
+- `AdminRouteStopInput`: Sequence item mapping `stop_id` and `stop_sequence`.
+- `AdminRoute`: Bus route with nested ordered stop sequences.
+- `AdminBus`: Vehicle fleet entity with capacity and status.
+- `AdminSchedule`: Weekly recurring operational day mask.
+- `AdminTrip`: Scheduled transit trip connecting route, bus, schedule, and fare.
+
+### 10.3 Admin Backend API Endpoints
+- `GET /api/admin/stats`: Aggregate system metrics.
+- `GET, POST, PUT, DELETE /api/admin/stops`: Full CRUD for stops table.
+- `GET, POST, PUT, DELETE /api/admin/routes`: Full CRUD for routes and route_stops.
+- `GET, POST, PUT, DELETE /api/admin/buses`: Full CRUD for buses fleet table.
+- `GET, POST, PUT, DELETE /api/admin/schedules`: Full CRUD for schedules table.
+- `GET, POST, PUT, DELETE /api/admin/trips`: Full CRUD for trips table with foreign relations.
+
+### 10.4 Admin Frontend Control Center (`src/app/admin/page.tsx`)
+- Protected route verifying admin role before rendering.
+- 5-card KPI summary strip for live transit statistics (Total Trips, Active Routes, Bus Stops, Fleet Buses, Schedules).
+- Tabbed management interface for Trips, Routes & Stops Builder, Stops, Buses, and Schedules with inline add/edit forms, validation, and delete protections.

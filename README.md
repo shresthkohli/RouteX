@@ -12,6 +12,7 @@ RouteX is a high-performance modern public transit web application built specifi
 - **Secure Authentication:** Custom stateless JWT authentication (`jose`) stored in HTTP-Only cookies with `bcryptjs` password hashing.
 - **Ticketing & Booking Receipts:** Reserve trip tickets through `fn_book_trip($1, $2)` with automated fare tracking.
 - **Saved Routes:** Bookmark frequently used transit routes using `fn_add_favorite_route($1, $2)` and manage them from a user dashboard.
+- **Admin Control Center (`/admin`):** Full-featured transit administration portal with live KPI metrics, trip scheduling, interactive route stop sequence builder, stops directory, fleet management, and recurring calendar scheduling.
 
 ---
 
@@ -20,6 +21,7 @@ RouteX is a high-performance modern public transit web application built specifi
 - **Framework:** Next.js (App Router, React 19, TypeScript)
 - **Database Driver:** `@neondatabase/serverless` (Zero-ORM, raw parameterized SQL)
 - **Authentication:** `jose` (HS256 signed JWT in HTTP-Only cookie `routex_token`), `bcryptjs` (10 salt rounds)
+- **Authorization:** `requireAdmin()` gatekeeper verifying `user_role === 'admin'` on all administrative routes
 - **Styling:** Tailwind CSS (Dark Slate `#020617` / `#0f172a` + Emerald `#10b981` accents)
 - **Icons:** `lucide-react`
 
@@ -54,10 +56,10 @@ routex/
 └── src/
     ├── lib/
     │   ├── db.ts                # Neon Serverless SQL client
-    │   ├── auth.ts              # JWT creation, verification, and getSessionUser helper
+    │   ├── auth.ts              # JWT creation, verification, getSessionUser, requireAdmin helper
     │   └── types.ts             # Strict TypeScript domain interfaces
     ├── components/
-    │   ├── Navbar.tsx           # Global navigation with live auth status
+    │   ├── Navbar.tsx           # Global navigation with live auth status & Admin Link
     │   ├── StopAutocomplete.tsx # Station search input with debounce & dropdown
     │   ├── TripCard.tsx         # Bus service search result card with actions
     │   └── RouteCard.tsx        # Route overview card with expandable stops
@@ -67,6 +69,8 @@ routex/
         ├── buses/page.tsx       # Route explorer & stop sequences
         ├── login/page.tsx       # Tabbed Login / Signup portal
         ├── dashboard/page.tsx   # User profile, saved routes & booking history
+        ├── admin/
+        │   └── page.tsx         # Protected Unified Admin Control Center
         └── api/
             ├── auth/
             │   ├── signup/route.ts
@@ -77,7 +81,14 @@ routex/
             ├── trips/search/route.ts
             ├── buses/route.ts
             ├── bookings/route.ts
-            └── favorites/route.ts
+            ├── favorites/route.ts
+            └── admin/
+                ├── stats/route.ts       # GET aggregate network KPI metrics
+                ├── stops/route.ts       # GET, POST, PUT, DELETE stops
+                ├── routes/route.ts      # GET, POST, PUT, DELETE routes & route_stops
+                ├── buses/route.ts       # GET, POST, PUT, DELETE vehicle fleet
+                ├── schedules/route.ts   # GET, POST, PUT, DELETE weekly calendar schedules
+                └── trips/route.ts       # GET, POST, PUT, DELETE transit trips
 ```
 
 ---
@@ -97,7 +108,7 @@ routex/
 
 ---
 
-## 📡 API Route Specifications
+## 📡 Public & Passenger API Route Specifications
 
 | Method | Endpoint | Description | Auth Required |
 | :--- | :--- | :--- | :--- |
@@ -113,6 +124,52 @@ routex/
 | `GET` | `/api/favorites` | Retrieve bookmarked routes (`fn_get_favorite_routes`) | Yes |
 | `POST` | `/api/favorites` | Add route to favorites (`fn_add_favorite_route`) | Yes |
 | `DELETE` | `/api/favorites?routeId=` | Remove route from saved list | Yes |
+
+---
+
+## 🛡️ Admin API Route Specifications (`/api/admin/...`)
+
+*All admin endpoints require `user_role === 'admin'`. Unauthorized requests receive `403 Forbidden`.*
+
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `GET` | `/api/admin/stats` | Fetches aggregate system KPIs (trips, routes, stops, buses, schedules, users) |
+| `GET` | `/api/admin/stops` | Returns all stops ordered by `stop_id ASC` |
+| `POST` | `/api/admin/stops` | Creates a new bus stop (`stop_name`, `latitude`, `longitude`, `is_active`) |
+| `PUT` | `/api/admin/stops` | Updates existing bus stop coordinates and active flag |
+| `DELETE` | `/api/admin/stops?stopId=` | Deletes a stop (fails with 400 if assigned to routes) |
+| `GET` | `/api/admin/routes` | Returns all routes with nested ordered stop sequences (`route_stops`) |
+| `POST` | `/api/admin/routes` | Creates route and inserts ordered `(route_id, stop_id, stop_sequence)` |
+| `PUT` | `/api/admin/routes` | Updates route info and cleanly re-syncs ordered stop sequence |
+| `DELETE` | `/api/admin/routes?routeId=` | Deletes route and its stops (fails with 400 if trips reference it) |
+| `GET` | `/api/admin/buses` | Returns fleet vehicle records (`bus_number`, `bus_type`, `capacity`, `status`) |
+| `POST` | `/api/admin/buses` | Adds a new bus to the fleet |
+| `PUT` | `/api/admin/buses` | Updates bus capacity, type, and operational status |
+| `DELETE` | `/api/admin/buses?busId=` | Deletes vehicle from fleet (fails with 400 if assigned to trips) |
+| `GET` | `/api/admin/schedules` | Returns all weekly recurring day mask schedules |
+| `POST` | `/api/admin/schedules` | Creates schedule with active day flags (Mon-Sun) |
+| `PUT` | `/api/admin/schedules` | Updates schedule name and operating days |
+| `DELETE` | `/api/admin/schedules?scheduleId=` | Deletes schedule (fails with 400 if assigned to trips) |
+| `GET` | `/api/admin/trips` | Returns all scheduled trips joined with route, bus, and schedule details |
+| `POST` | `/api/admin/trips` | Creates trip (validates `arrival_time > departure_time` and `fare >= 0`) |
+| `PUT` | `/api/admin/trips` | Updates trip departure/arrival times, fare, assigned bus, or status |
+| `DELETE` | `/api/admin/trips?tripId=` | Deletes trip (fails with 400 if passenger tickets exist) |
+
+---
+
+## 👑 Promoting a User to Administrator
+
+To grant administrative privileges to an account, run this SQL statement in your Neon PostgreSQL Console:
+
+```sql
+UPDATE users
+SET user_role = 'admin'
+WHERE email = 'your-registered-email@example.com';
+```
+
+*(Alternatively, use `phone_number = '...'` if the account registered using a phone number).*
+
+Once updated, the user will see the **Admin Panel** badge in the navbar and gain full CRUD access on `/admin`.
 
 ---
 

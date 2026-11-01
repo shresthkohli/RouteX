@@ -76,3 +76,78 @@ export interface FavoriteRoute {
   end_stop_name: string;
   total_stops: number;
 }
+
+
+export interface AdminStats {
+  total_stops: number;
+  active_stops: number;
+  total_routes: number;
+  active_routes: number;
+  total_buses: number;
+  active_buses: number;
+  total_schedules: number;
+  total_trips: number;
+  scheduled_trips: number;
+  total_users: number;
+}
+
+export interface AdminStop {
+  stop_id: number;
+  stop_name: string;
+  latitude: string | null;
+  longitude: string | null;
+  is_active: boolean;
+}
+
+export interface AdminRouteStopInput {
+  stop_id: number;
+  stop_sequence: number;
+}
+
+export interface AdminRoute {
+  route_id: number;
+  route_number: string;
+  route_name: string;
+  route_type: 'City Bus' | 'BRTS' | 'Electric';
+  is_active: boolean;
+  stops: {
+    stop_id: number;
+    stop_name: string;
+    stop_sequence: number;
+  }[];
+}
+
+export interface AdminBus {
+  bus_id: number;
+  bus_number: string;
+  bus_type: 'Standard' | 'Articulated' | 'Mini' | 'Electric';
+  capacity: number;
+  status: 'Active' | 'Maintenance' | 'Retired';
+}
+
+export interface AdminSchedule {
+  schedule_id: number;
+  schedule_name: string;
+  monday: boolean;
+  tuesday: boolean;
+  wednesday: boolean;
+  thursday: boolean;
+  friday: boolean;
+  saturday: boolean;
+  sunday: boolean;
+}
+
+export interface AdminTrip {
+  trip_id: number;
+  route_id: number;
+  route_number: string;
+  route_name: string;
+  bus_id: number | null;
+  bus_number: string | null;
+  schedule_id: number;
+  schedule_name: string;
+  departure_time: string;
+  arrival_time: string;
+  fare: string;
+  status: 'Scheduled' | 'In Progress' | 'Completed' | 'Cancelled';
+}

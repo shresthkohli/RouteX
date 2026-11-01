@@ -60,3 +60,12 @@ export async function getSessionUser(): Promise<SessionPayload | null> {
     return null;
   }
 }
+
+
+export async function requireAdmin(): Promise<SessionPayload | null> {
+  const session = await getSessionUser();
+  if (!session || session.user_role !== 'admin') {
+    return null;
+  }
+  return session;
+}

@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Bus, MapPin, User, Bookmark, LogOut, Menu, X, Shield } from 'lucide-react';
+import { Bus, MapPin, User, LogOut, Menu, X, Shield } from 'lucide-react';
 import { UserProfile } from '@/lib/types';
 
 export default function Navbar() {
@@ -94,6 +94,16 @@ export default function Navbar() {
           <div className="hidden md:flex items-center gap-3">
             {!loading && user ? (
               <div className="flex items-center gap-2">
+                {user.user_role === 'admin' && (
+                  <Link
+                    href="/admin"
+                    className="bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 rounded-xl px-3 py-1.5 text-sm font-medium flex items-center gap-1.5 hover:bg-emerald-500/25 transition-all duration-200"
+                  >
+                    <Shield className="w-3.5 h-3.5" />
+                    Admin Panel
+                  </Link>
+                )}
+
                 <Link
                   href="/dashboard"
                   className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-sm border transition-all duration-200 ${
@@ -114,6 +124,7 @@ export default function Navbar() {
                     </span>
                   )}
                 </Link>
+
                 <button
                   onClick={handleLogout}
                   title="Sign out"
@@ -170,6 +181,20 @@ export default function Navbar() {
 
           {!loading && user ? (
             <div className="pt-2 border-t border-slate-800/80 space-y-2">
+              {user.user_role === 'admin' && (
+                <Link
+                  href="/admin"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium bg-emerald-500/15 text-emerald-300 border border-emerald-500/30"
+                >
+                  <div className="flex items-center gap-2">
+                    <Shield className="w-4 h-4 text-emerald-400" />
+                    <span>Admin Panel</span>
+                  </div>
+                  <span className="text-xs text-emerald-400">Manage →</span>
+                </Link>
+              )}
+
               <Link
                 href="/dashboard"
                 onClick={() => setMobileMenuOpen(false)}
